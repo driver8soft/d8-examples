@@ -23,3 +23,5 @@ go.work.sum
 
 # Makefile
 **/makefile
+
+**/.DS_Store
