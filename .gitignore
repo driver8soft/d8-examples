@@ -23,6 +23,7 @@ go.work.sum
 
 # Makefile
 **/Makefile
+**/.sh
 
 # Ignore Mac DS_Store files
 .DS_Store
