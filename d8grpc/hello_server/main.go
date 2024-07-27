@@ -22,7 +22,7 @@ import (
 	"time"
 	"unsafe"
 
-	pb "d8grpc/hello/hello"
+	pb "github.com/driver8soft/examples/d8grpc/hello/hello.proto"
 
 	"google.golang.org/grpc"
 )
