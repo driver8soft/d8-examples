@@ -3,6 +3,7 @@ module github.com/driver8soft/examples
 go 1.22.4
 
 require (
+	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/spf13/viper v1.19.0
 	google.golang.org/grpc v1.65.0
