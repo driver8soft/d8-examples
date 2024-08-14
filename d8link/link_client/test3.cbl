@@ -10,7 +10,7 @@
        FILE SECTION.
 
        WORKING-STORAGE SECTION.
-      * In COBOL, you declare variables in the WORKING-STORAGE section
+      * Declare variables in the WORKING-STORAGE section
        01 PROG-NAME PIC X(8) VALUE "loop".
        01 COMMLEN PIC 9(9) COMP.
        01 COMMAREA.
