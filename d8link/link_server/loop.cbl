@@ -5,7 +5,7 @@
        DATA DIVISION.
        FILE SECTION.
        WORKING-STORAGE SECTION.
-      * In COBOL, you declare variables in the WORKING-STORAGE section
+      * Declare variables in the WORKING-STORAGE section
        01 TOTAL PIC S9(9) VALUE ZEROES.
        LINKAGE SECTION.
       * Data to share with COBOL subroutines 
@@ -20,5 +20,5 @@
            GOBACK.
 
            PROCESS.
-           CALL "rutina" USING TOTAL.
+           CALL "routine" USING TOTAL.
 

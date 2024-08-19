@@ -1,11 +1,11 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. rutina.
+       PROGRAM-ID. routine.
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
        DATA DIVISION.
        FILE SECTION.
        WORKING-STORAGE SECTION.
-      * In COBOL, you declare variables in the WORKING-STORAGE section
+      * Declare variables in the WORKING-STORAGE section
 
        LINKAGE SECTION.
       * Data to share with COBOL subroutines 
