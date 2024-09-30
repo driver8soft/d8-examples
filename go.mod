@@ -5,6 +5,7 @@ go 1.22.4
 require (
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/gin-gonic/gin v1.10.0
+	github.com/google/go-cmp v0.6.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	google.golang.org/grpc v1.65.0
