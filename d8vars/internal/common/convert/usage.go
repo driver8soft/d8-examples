@@ -7,77 +7,74 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 var negDecimals = [10]byte{0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79}
 
 func formatStr(s string, cDec int) string {
-	v, _ := strconv.ParseFloat(s, 64)
-	v = v / math.Pow10(cDec)
-	return strconv.FormatFloat(v, 'f', -1, 64)
+	dec, _ := decimal.NewFromString(s)
+	dec = dec.Div(decimal.NewFromFloat(math.Pow10(cDec)))
+	return dec.String()
 }
-func checkLimits(n int64, cLen, cDec int) error {
-	limit := int64(math.Pow10(cLen - cDec))
-	if n > (limit-1) || n < (limit*-1)+1 {
-		return fmt.Errorf("exceed max. lenght in picture:value (%v)", n)
+
+func justifyZero(dec decimal.Decimal, cLen int) string {
+	var strNumber string
+	// remove sign
+	if dec.IsNegative() {
+		strNumber = dec.Neg().String()
+	} else {
+		strNumber = dec.String()
 	}
-	return nil
-}
-func justifyDisplay(n int64, cLen int) string {
-	var count int
-	if n < 0 {
-		n = -n
-	}
-	ndisplay := strconv.FormatInt(n, 10)
-	if count = cLen - len(ndisplay); count <= 0 {
-		return ndisplay
-	}
+	// add zeroes until picture length
 	var builder strings.Builder
+
 	builder.Grow(cLen)
-	for i := 0; i < count; i++ {
+	for i := 0; i < cLen-len(strNumber); i++ {
 		builder.WriteByte('0')
 	}
-	builder.WriteString(ndisplay)
+	builder.WriteString(strNumber)
 	return builder.String()
 }
-func formatDisplay(s string, cLen, cDec int, cSign bool) (nAlign int64, err error) {
-	var n float64
+
+func formatDecimal(s string, cLen, cDec int, cSign bool) (dec decimal.Decimal, err error) {
+	var zero decimal.Decimal = decimal.NewFromInt(0)
 	// check empty string
 	if s == "" {
 		s = "0"
 	}
-	// Check format number
-	if n, err = strconv.ParseFloat(s, 64); err != nil {
-		return 0, fmt.Errorf("usage display: %s", err)
+	dec, err = decimal.NewFromString(s)
+	if err != nil {
+		return zero, err
 	}
 	// Check sign mask
-	if !cSign && n < 0 {
-		return 0, fmt.Errorf("negative value in unsigned variable: value(%v)", n)
+	if dec.IsNegative() && !cSign {
+		return zero, fmt.Errorf("negative value in unsigned variable: value(%v)", s)
 	}
 	// Check COBOL mask limits
-	if err := checkLimits(int64(n), cLen, cDec); err != nil {
-		return 0, err
+	limit := int64(math.Pow10(cLen - cDec))
+	if dec.IntPart() > limit-1 || dec.IntPart() < (limit*-1)+1 {
+		return zero, fmt.Errorf("exceed max. lenght in picture:value (%v)", s)
 	}
-	n = n * math.Pow10(cDec)
-	n = math.Round(n*100) / 100
-	return int64(n), nil
+	return dec.Mul(decimal.NewFromFloat(math.Pow10(cDec))).Truncate(0), nil
 }
 
 func usage0(s string, cLen, cDec int, cSign bool) (string, error) {
-	// Align number to picture clause
-	nAlign, err := formatDisplay(s, cLen, cDec, cSign)
+	// align number to picture clause
+	dec, err := formatDecimal(s, cLen, cDec, cSign)
 	if err != nil {
 		return "", err
 	}
 	// justify number to picture length ... add zeroes
-	ndisplay := justifyDisplay(nAlign, cLen)
+	nDisplay := justifyZero(dec, cLen)
 
-	if nAlign >= 0 {
-		return ndisplay, nil
-	} else {
-		i, _ := strconv.Atoi(ndisplay[len(ndisplay)-1:])
-		return ndisplay[:len(ndisplay)-1] + string(negDecimals[i]), nil
+	// add sign +/- to last byte
+	if dec.IsNegative() {
+		i, _ := strconv.Atoi(nDisplay[len(nDisplay)-1:])
+		nDisplay = nDisplay[:len(nDisplay)-1] + string(negDecimals[i])
 	}
+	return nDisplay, nil
 }
 func usage1(f float32) []byte {
 	buf := make([]byte, 4)
@@ -90,58 +87,58 @@ func usage2(f float64) []byte {
 	return buf
 }
 func usage3(s string, cLen, cDec int, cSign bool) ([]byte, error) {
-	// align number to picture
-	nAlign, err := formatDisplay(s, cLen, cDec, cSign)
+	// align number to picture clause
+	dec, err := formatDecimal(s, cLen, cDec, cSign)
 	if err != nil {
 		return nil, err
 	}
 	// justify number to picture length ... add zeroes
-	nPacked := justifyDisplay(nAlign, cLen)
+	nPacked := justifyZero(dec, cLen)
 
-	var builder strings.Builder
-	builder.Grow(cLen)
-
-	// odd lenght add zero
+	// even lenght add zero
 	if len(nPacked)%2 == 0 {
-		builder.WriteByte('0')
+		nPacked = "0" + nPacked
 	}
-	builder.WriteString(nPacked)
-
 	// add sign +/- to last byte
-	if nAlign >= 0 {
-		builder.WriteByte('C')
+	if dec.IsNegative() {
+		nPacked = nPacked + "d"
 	} else {
-		builder.WriteByte('D')
+		nPacked = nPacked + "c"
 	}
-	result, _ := hex.DecodeString(builder.String())
+	return hex.DecodeString(nPacked)
 
-	return result, nil
 }
 func usage4(s string, cLen, cDec int, cSign bool) ([]byte, error) {
-	// align number to picture
-	nAlign, err := formatDisplay(s, cLen, cDec, cSign)
+	// align number to picture clause
+	dec, err := formatDecimal(s, cLen, cDec, cSign)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	if cSign {
 		if cLen > 0 && cLen < 5 {
-			return usage5Short(int16(nAlign)), nil
+			n, _ := strconv.ParseInt(dec.String(), 10, 16)
+			return usage5Short(int16(n)), nil
 		}
 		if cLen > 4 && cLen < 10 {
-			return usage5Long(int32(nAlign)), nil
+			n, _ := strconv.ParseInt(dec.String(), 10, 32)
+			return usage5Long(int32(n)), nil
 		}
 		if cLen > 9 && cLen < 18 {
-			return usage5Double(int64(nAlign)), nil
+			n, _ := strconv.ParseInt(dec.String(), 10, 64)
+			return usage5Double(n), nil
 		}
 	} else {
 		if cLen > 0 && cLen < 5 {
-			return usage5Ushort(uint16(nAlign)), nil
+			n, _ := strconv.ParseUint(dec.String(), 10, 16)
+			return usage5Ushort(uint16(n)), nil
 		}
 		if cLen > 4 && cLen < 10 {
-			return usage5Ulong(uint32(nAlign)), nil
+			n, _ := strconv.ParseUint(dec.String(), 10, 32)
+			return usage5Ulong(uint32(n)), nil
 		}
 		if cLen > 9 && cLen < 18 {
-			return usage5Udouble(uint64(nAlign)), nil
+			n, _ := strconv.ParseUint(dec.String(), 10, 64)
+			return usage5Udouble(n), nil
 		}
 	}
 	return []byte{}, fmt.Errorf("invalid length: %v", cLen)
